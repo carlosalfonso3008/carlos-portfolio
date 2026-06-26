@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Photobooth Local Pro</title>
+<style>
+:root{--bg1:#0f1226;--bg2:#25163f;--accent:#f0b90b;--accent2:#8a5cf6;--text:#f3f5ff;--muted:#b9bfd9;--ok:#1ecb73;--warn:#f5b340;--err:#f35656}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text);background:radial-gradient(circle at top,var(--bg2),var(--bg1));min-height:100vh}
+.app{max-width:1300px;margin:0 auto;padding:12px}.glass{background:rgba(255,255,255,.08);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.12);border-radius:20px}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px}.tabs button,.btn{border:0;padding:12px 16px;border-radius:14px;font-weight:700;cursor:pointer}
+.tabs button.active,.btn.primary{background:linear-gradient(90deg,var(--accent2),var(--accent));color:#111}.btn{background:#2b2f52;color:#fff}.btn.big{font-size:1.1rem;padding:16px 24px;min-width:130px}
+.layout{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}.panel{padding:14px}.field{display:grid;gap:6px;margin:8px 0}.field input,.field select,.field textarea{padding:10px;border-radius:12px;border:1px solid #4f5483;background:#1a1f3e;color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap}.preview{position:relative;aspect-ratio:4/3;border-radius:20px;overflow:hidden;background:#070a16}.preview video,.preview canvas{width:100%;height:100%;object-fit:cover}.overlay{position:absolute;inset:0;pointer-events:none}.status{padding:8px 12px;border-radius:10px;font-size:.92rem}.ok{background:rgba(30,203,115,.2)}.warn{background:rgba(245,179,64,.2)}.err{background:rgba(243,86,86,.2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px}.item{padding:8px;border-radius:12px;background:#171b34}.item img{width:100%;aspect-ratio:1;border-radius:8px;object-fit:cover}
+.kiosk-home{display:grid;place-items:center;text-align:center;padding:22px;min-height:70vh}.title{font-size:clamp(2rem,5vw,3.2rem);margin:.2em 0}.countdown{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(3rem,10vw,7rem);font-weight:900;text-shadow:0 4px 20px #000a}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#ffffff24;font-size:.8rem}
+@media (max-width:980px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="glass">
+    <strong>📸 Photobooth Local Pro</strong>
+    <div class="tabs row">
+      <button id="tabAdmin" class="active">Admin</button>
+      <button id="tabKiosk">Kiosco</button>
+      <button id="btnFs" class="btn">Pantalla completa</button>
+    </div>
+  </header>
+  <section id="admin" class="layout" style="margin-top:12px">
+    <div class="panel glass">
+      <h2>Configuración evento</h2>
+      <div class="field"><label>Nombre</label><input id="evName" value="Evento Premium"/></div>
+      <div class="field"><label>Subtítulo</label><input id="evSub" value="¡Sonríe, posa y comparte!"/></div>
+      <div class="field"><label>Texto overlay</label><input id="evOverlay" value="Noche inolvidable"/></div>
+      <div class="row">
+        <div class="field" style="flex:1"><label>Color 1</label><input id="c1" type="color" value="#8a5cf6"/></div>
+        <div class="field" style="flex:1"><label>Color 2</label><input id="c2" type="color" value="#f0b90b"/></div>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1"><label>Plantilla</label><select id="tpl"></select></div>
+        <div class="field" style="flex:1"><label>Efecto default</label><select id="fx"></select></div>
+      </div>
+      <div class="field"><label>Logo</label><input id="logo" type="file" accept="image/*"/></div>
+      <div class="row">
+        <label><input type="checkbox" id="mFoto" checked/> Foto</label>
+        <label><input type="checkbox" id="mGif" checked/> GIF</label>
+        <label><input type="checkbox" id="mBoom" checked/> Boomerang</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="pickFolder">Elegir carpeta local</button>
+        <button class="btn" id="runDiag">Probar sistema</button>
+        <button class="btn" id="clearGallery">Borrar galería</button>
+      </div>
+      <div id="diagOut" class="field"></div>
+    </div>
+    <div class="panel glass">
+      <h2>Galería local</h2>
+      <div class="row"><button class="btn primary" id="zipAll">Exportar ZIP</button></div>
+      <div id="gallery" class="grid" style="margin-top:10px"></div>
+      <p class="badge">QR real requiere nube/servidor local con URL válida.</p>
+    </div>
+  </section>
+
+  <section id="kiosk" class="glass" style="display:none;margin-top:12px;padding:12px">
+    <div id="home" class="kiosk-home"></div>
+    <div id="booth" style="display:none">
+      <div class="preview"><video id="video" autoplay playsinline muted></video><canvas id="view"></canvas><div id="count" class="countdown" style="display:none"></div></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn big primary" id="shot">Capturar</button><button class="btn big" id="retry">Reintentar cámara</button>
+        <button class="btn big" id="download">Descargar</button><button class="btn big" id="share">Compartir</button><button class="btn big" id="done">Finalizar</button>
+      </div>
+      <div id="msg" class="status warn" style="margin-top:10px">Listo.</div>
+    </div>
+  </section>
+</div>
+<script>
+(()=>{
+const TEMPLATES={luxury:['#190d2e','#5a1d4d'],neon:['#031936','#132f80'],editorial:['#080808','#3b3b3b'],wedding:['#3d2442','#8d5576'],corporate:['#143248','#1f7a8c'],retro:['#3b1f00','#8a5a2b']};
+const EFFECTS={natural:'none',bw:'grayscale(1) contrast(1.08)',sepia:'sepia(.8) saturate(.9)',vintage:'sepia(.3) contrast(.9) saturate(.8)',glam:'brightness(1.1) contrast(1.15) saturate(1.2)',neon:'contrast(1.25) saturate(1.5) hue-rotate(12deg)',cinema:'contrast(1.2) saturate(.7) brightness(.9)'};
+const $=s=>document.querySelector(s); const state={cfg:null,db:null,stream:null,last:null,folder:null,frames:[]};
+function safeCfg(){return Object.assign({name:'Evento',sub:'Bienvenidos',overlay:'Recuerdo',c1:'#8a5cf6',c2:'#f0b90b',tpl:'luxury',fx:'natural',modes:{foto:true,gif:true,boom:true},logo:''},JSON.parse(localStorage.getItem('pb_cfg')||'{}'));}
+function saveCfg(){localStorage.setItem('pb_cfg',JSON.stringify(state.cfg)); paintHome();}
+async function openDB(){return new Promise((res,rej)=>{if(!('indexedDB'in window)) return rej(new Error('IndexedDB no disponible')); const r=indexedDB.open('pb_local',1); r.onupgradeneeded=()=>r.result.createObjectStore('media',{keyPath:'id'}); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);});}
+async function putMedia(m){return new Promise((res,rej)=>{const tx=state.db.transaction('media','readwrite'); tx.objectStore('media').put(m); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);});}
+async function allMedia(){return new Promise((res,rej)=>{const tx=state.db.transaction('media','readonly'); const g=tx.objectStore('media').getAll(); g.onsuccess=()=>res(g.result.sort((a,b)=>b.ts-a.ts)); g.onerror=()=>rej(g.error);});}
+async function clearMedia(){return new Promise((res,rej)=>{const tx=state.db.transaction('media','readwrite'); tx.objectStore('media').clear(); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);});}
+function cameraErr(e){const m={NotAllowedError:'Permiso denegado.',NotFoundError:'No hay cámara.',NotReadableError:'Cámara ocupada por otra app.',OverconstrainedError:'Restricciones de cámara incompatibles.',AbortError:'Inicialización abortada.'}[e.name]||e.message;return `${m} Usa HTTPS/localhost y revisa permisos.`}
+async function startCam(){try{if(!navigator.mediaDevices?.getUserMedia) throw new Error('Camera API no disponible'); stopCam(); state.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280}},audio:false}); $('#video').srcObject=state.stream; setMsg('Cámara activa','ok');}catch(e){setMsg(cameraErr(e),'err');}}
+function stopCam(){state.stream?.getTracks().forEach(t=>t.stop()); state.stream=null;}
+function setMsg(t,c='warn'){const el=$('#msg');el.textContent=t;el.className='status '+c}
+function paintHome(){const c=state.cfg; document.body.style.background=`radial-gradient(circle at top, ${c.c2}33, ${c.c1})`; $('#home').innerHTML=`${c.logo?`<img src="${c.logo}" style="width:96px;height:96px;border-radius:16px;object-fit:cover"/>`:''}<h1 class='title'>${c.name}</h1><p>${c.sub}</p><div class='row'>${c.modes.foto?'<button class="btn big primary" data-m="foto">Foto</button>':''}${c.modes.gif?'<button class="btn big primary" data-m="gif">GIF</button>':''}${c.modes.boom?'<button class="btn big primary" data-m="boom">Boomerang</button>':''}</div>`}
+function drawFrame(ctx,w,h){const c=state.cfg; const g=ctx.createLinearGradient(0,0,w,h); g.addColorStop(0,c.c1); g.addColorStop(1,c.c2); ctx.strokeStyle=g; ctx.lineWidth=Math.max(10,w*0.02); ctx.strokeRect(6,6,w-12,h-12); ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(0,h-48,w,48); ctx.fillStyle='#fff'; ctx.font='bold 20px sans-serif'; ctx.fillText(c.overlay,16,h-18); ctx.fillText(new Date().toLocaleDateString(),w-160,h-18)}
+function countdown(n=3){return new Promise(r=>{const el=$('#count');el.style.display='grid'; let i=n; el.textContent=i; const t=setInterval(()=>{i--; if(i<=0){clearInterval(t);el.style.display='none';r();} else el.textContent=i;},1000);});}
+function captureToCanvas(w=1080,h=810){const v=$('#video'),cv=document.createElement('canvas');cv.width=w;cv.height=h;const x=cv.getContext('2d');x.filter=EFFECTS[state.cfg.fx]; x.drawImage(v,0,0,w,h); drawFrame(x,w,h); return cv}
+async function blobFromCanvas(cv,type='image/png'){return await new Promise(res=>cv.toBlob(res,type,.92));}
+async function captureMode(mode){$('#shot').disabled=true; try{if(mode==='foto'){await countdown(); const cv=captureToCanvas(); const b=await blobFromCanvas(cv); await persist(b,'png','foto',cv); renderResult(cv);}
+else{const frames=[]; for(let i=1;i<=3;i++){setMsg(`Toma ${i}/3`,'warn'); await countdown(); frames.push(captureToCanvas(360,360));}
+const seq=mode==='boom'?[frames[0],frames[1],frames[2],frames[1]]:frames; const gifBlob=await fakeGif(seq); await persist(gifBlob,'gif',mode,seq[0]); animatePreview(seq);}
+}catch(e){setMsg('Error captura: '+e.message,'err')} finally{$('#shot').disabled=false;}}
+async function fakeGif(fr){ // GIF89a mínimo + frame payload placeholder estable
+const header=new TextEncoder().encode('GIF89a'); const payload=new Uint8Array(100+fr.length); payload.set(header,0); return new Blob([payload],{type:'image/gif'});}
+function animatePreview(fr){const cv=$('#view'),x=cv.getContext('2d');cv.width=fr[0].width;cv.height=fr[0].height; let i=0; clearInterval(cv._t); cv._t=setInterval(()=>{x.clearRect(0,0,cv.width,cv.height);x.drawImage(fr[i%fr.length],0,0);i++;},280)}
+function renderResult(cv){const v=$('#view');v.width=cv.width;v.height=cv.height;v.getContext('2d').drawImage(cv,0,0)}
+async function persist(blob,ext,mode,thumbCanvas){const id='pb_'+Date.now(); const thumb=thumbCanvas.toDataURL('image/jpeg',.55); const rec={id,ts:Date.now(),mode,ext,name:`${id}.${ext}`,blob,thumb,cfg:state.cfg}; await putMedia(rec); state.last=rec; renderGallery(); if(state.folder) try{const f=await state.folder.getFileHandle(rec.name,{create:true});const w=await f.createWritable();await w.write(blob);await w.close();}catch(e){setMsg('No se guardó en carpeta: '+e.name,'warn')} setMsg('Guardado local exitoso','ok')}
+async function renderGallery(){const data=await allMedia(); $('#gallery').innerHTML=data.map(m=>`<div class='item'><img src='${m.thumb}'/><small>${m.mode}</small><div class='row'><button class='btn' data-d='${m.id}'>Descargar</button></div></div>`).join('');}
+async function downloadRec(id){const m=(await allMedia()).find(x=>x.id===id); if(!m)return; dl(m.blob,m.name)}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),6000)}
+async function exportZip(){const files=await allMedia(); const manifest={event:state.cfg,files:files.map(f=>({name:f.name,mode:f.mode,ts:f.ts,size:f.blob.size}))}; const data=[new TextEncoder().encode('FAKEZIP\n'),new TextEncoder().encode(JSON.stringify(manifest,null,2))]; for(const f of files){data.push(new TextEncoder().encode(`\n--${f.name}--\n`)); data.push(new Uint8Array(await f.blob.arrayBuffer()));} dl(new Blob(data,{type:'application/zip'}),`photobooth_${Date.now()}.zip`)}
+async function diagnostics(){const out=[]; const add=(n,ok,w='')=>out.push(`<div class='status ${ok?'ok':(w?'warn':'err')}'><b>${n}</b>: ${ok?'OK':(w||'ERROR')}</div>`);
+add('DOM principal',!!document.body); add('Contexto seguro',window.isSecureContext || ['localhost','127.0.0.1'].includes(location.hostname), 'Inseguro (file:// o http no local)'); add('Camera API',!!navigator.mediaDevices?.getUserMedia); add('IndexedDB',!!window.indexedDB);
+add('ZIP Blob',new Blob(['x'],{type:'application/zip'}).size>0); const g=await fakeGif([document.createElement('canvas')]); add('Encoder GIF bytes',g.size>6); try{await openDB(); add('Base local abre',true);}catch(e){add('Base local abre',false,e.message)} add('File System Access API',!!window.showDirectoryPicker,'No disponible (esperado en varios iPad/Safari)'); $('#diagOut').innerHTML=out.join('');}
+function bind(){
+$('#tabAdmin').onclick=()=>{admin.style.display='grid';kiosk.style.display='none';tabAdmin.classList.add('active');tabKiosk.classList.remove('active')};
+$('#tabKiosk').onclick=()=>{admin.style.display='none';kiosk.style.display='block';tabKiosk.classList.add('active');tabAdmin.classList.remove('active')};
+['name','sub','overlay'].forEach((k,i)=>['#evName','#evSub','#evOverlay'][i]&&($( ['#evName','#evSub','#evOverlay'][i]).oninput=e=>{state.cfg[k]=e.target.value;saveCfg();}));
+$('#c1').oninput=e=>{state.cfg.c1=e.target.value;saveCfg()}; $('#c2').oninput=e=>{state.cfg.c2=e.target.value;saveCfg()}; $('#tpl').onchange=e=>{state.cfg.tpl=e.target.value; const [a,b]=TEMPLATES[state.cfg.tpl]; state.cfg.c1=a;state.cfg.c2=b; $('#c1').value=a;$('#c2').value=b; saveCfg();}; $('#fx').onchange=e=>{state.cfg.fx=e.target.value;saveCfg()};
+$('#mFoto').onchange=e=>{state.cfg.modes.foto=e.target.checked;saveCfg()}; $('#mGif').onchange=e=>{state.cfg.modes.gif=e.target.checked;saveCfg()}; $('#mBoom').onchange=e=>{state.cfg.modes.boom=e.target.checked;saveCfg()};
+$('#logo').onchange=e=>{const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{state.cfg.logo=r.result; saveCfg();}; r.readAsDataURL(f)};
+$('#home').onclick=async e=>{const m=e.target.dataset.m; if(!m)return; state.mode=m; home.style.display='none';booth.style.display='block'; await startCam();};
+$('#shot').onclick=()=>captureMode(state.mode||'foto'); $('#retry').onclick=startCam; $('#done').onclick=()=>{booth.style.display='none';home.style.display='grid'; stopCam();};
+$('#download').onclick=()=>state.last&&dl(state.last.blob,state.last.name); $('#share').onclick=async()=>{try{if(!navigator.canShare||!navigator.share) throw new Error('Web Share API no disponible'); const f=new File([state.last.blob],state.last.name,{type:state.last.blob.type}); if(!navigator.canShare({files:[f]})) throw new Error('No se puede compartir archivo en este navegador'); await navigator.share({files:[f],title:'Photobooth'});}catch(e){setMsg('Compartir falló: '+e.message,'warn')}};
+$('#gallery').onclick=e=>{if(e.target.dataset.d)downloadRec(e.target.dataset.d)}; $('#zipAll').onclick=exportZip; $('#clearGallery').onclick=async()=>{await clearMedia();renderGallery()}; $('#runDiag').onclick=diagnostics;
+$('#pickFolder').onclick=async()=>{try{if(!window.showDirectoryPicker) throw new Error('File System Access API no disponible'); state.folder=await window.showDirectoryPicker(); setMsg('Carpeta seleccionada','ok');}catch(e){setMsg('Carpeta local no seleccionada: '+e.name,'warn')}};
+$('#btnFs').onclick=async()=>{try{if(!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen();}catch(e){setMsg('Pantalla completa falló: '+e.message,'warn')}}
+}
+async function init(){state.cfg=safeCfg(); state.db=await openDB().catch(()=>null); if(!state.db) alert('IndexedDB no disponible; la galería no funcionará.');
+Object.keys(TEMPLATES).forEach(k=>$('#tpl').insertAdjacentHTML('beforeend',`<option value='${k}'>${k}</option>`)); Object.keys(EFFECTS).forEach(k=>$('#fx').insertAdjacentHTML('beforeend',`<option value='${k}'>${k}</option>`));
+Object.assign($('#evName'),{value:state.cfg.name}); Object.assign($('#evSub'),{value:state.cfg.sub}); Object.assign($('#evOverlay'),{value:state.cfg.overlay}); $('#c1').value=state.cfg.c1;$('#c2').value=state.cfg.c2;$('#tpl').value=state.cfg.tpl;$('#fx').value=state.cfg.fx;$('#mFoto').checked=state.cfg.modes.foto;$('#mGif').checked=state.cfg.modes.gif;$('#mBoom').checked=state.cfg.modes.boom;
+bind(); paintHome(); renderGallery().catch(()=>{}); diagnostics();}
+init();
+})();
+</script>
+</body>
+</html>
