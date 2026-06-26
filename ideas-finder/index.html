@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ideas Finder</title>
+  <style>
+    :root { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; color: #211d1b; background: #f8f6f1; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: linear-gradient(135deg, rgba(250,227,176,.25), transparent 34%), #f8f6f1; }
+    main { width: min(680px, calc(100vw - 32px)); background: rgba(255,255,255,.86); border: 1px solid #e9e1d6; border-radius: 22px; padding: 28px; box-shadow: 0 18px 48px rgba(63,46,34,.08); }
+    h1 { margin: 0 0 8px; font-size: clamp(34px, 7vw, 58px); line-height: 1; }
+    p { color: #756d66; line-height: 1.5; margin: 0 0 22px; }
+    nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    a { text-decoration: none; color: white; background: #211d1b; border-radius: 16px; padding: 16px 18px; font-weight: 700; text-align: center; }
+    a.secondary { background: #fff4df; color: #673c33; border: 1px solid #eed6a3; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Ideas Finder</h1>
+    <p>Elige la versión para tu dispositivo. Ambas usan la misma base de Google Sheets.</p>
+    <nav>
+      <a href="mac.html">Abrir en Mac</a>
+      <a class="secondary" href="iphone.html">Abrir en iPhone</a>
+    </nav>
+  </main>
+</body>
+</html>
